@@ -1,0 +1,25 @@
+<tbales>
+    <table name="zc_test">
+        <types>
+            <type name="keyword">
+                <fields>
+                    <normal>name,birth</normal>
+                    <grater></grater>
+                    <less></less>
+                </fields>
+            </type>
+            <type name = "text">
+                <fields>
+                    <normal>desc</normal>
+                </fields>
+            </type>
+            <type name = "integer">
+                <fields>
+                    <grater>age</grater>
+                </fields>
+            </type>
+        </types>
+    </table>
+
+
+</tbales>
