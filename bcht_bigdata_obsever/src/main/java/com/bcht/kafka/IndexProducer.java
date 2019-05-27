@@ -14,7 +14,7 @@ import java.util.Properties;
  * @ProjectName: bcht_bigdata
  * @Package: com.bcht.obsever.kafka
  * @ClassName: IndexProducer
- * @Description:
+ * @Description: 索引生产程序
  * @Author: zhengchuan
  * @CreateDate: 2019/5/10 9:15
  * @UpdateUser:

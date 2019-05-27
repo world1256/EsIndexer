@@ -23,7 +23,7 @@ import java.util.Properties;
  * @ProjectName: bcht_bigdata
  * @Package: com.bcht.obsever.kafka
  * @ClassName: IndexConsumer
- * @Description:
+ * @Description: 索引消费程序
  * @Author: zhengchuan
  * @CreateDate: 2019/5/10 10:45
  * @UpdateUser:
@@ -66,7 +66,9 @@ public class IndexConsumer implements Runnable{
                 int count = 0;
                 for (ConsumerRecord<String, Map<String, Object>> record : records) {
                     TableIndex tableIndex = IndexConfigUtil.INDEX_CONFIG_MAP.get(record.key());
-                    Map<String, Object> indexMap = new HashMap<>();
+
+                    Map<String, FieldType> indexMap = new HashMap<>();
+//                    Map<String, Object> indexMap = new HashMap<>();
                     String indexId;
                     //index名称 只能是小写的
                     String indexName = record.key().toLowerCase();
@@ -80,14 +82,18 @@ public class IndexConsumer implements Runnable{
                             dataMap.forEach((field, value) -> {
                                 if (tableIndex.getFieldTypes().containsKey(field)) {
                                     FieldType fieldType = tableIndex.getFieldTypes().get(field);
-                                    if (FieldType.RULE_NORMAL.equals(fieldType.getRule())) {
-                                        indexMap.put(field, value);
-                                    } else {
-                                        ElasticsearchUtil.updateByQuery(indexName, indexName, indexId, fieldType, value);
-                                    }
+
+                                    fieldType.setValue(value);
+                                    indexMap.put(field,fieldType);
+//                                    if (FieldType.RULE_NORMAL.equals(fieldType.getRule())) {
+//                                        indexMap.put(field, value);
+//                                    } else {
+//                                        ElasticsearchUtil.updateByQuery(indexName, indexName, indexId, fieldType, value);
+//                                    }
                                 }
                             });
-                            ElasticsearchUtil.upsert(indexName, indexName, indexId, JSON.toJSONString(indexMap));
+//                            ElasticsearchUtil.upsert(indexName, indexName, indexId, JSON.toJSONString(indexMap));
+                            ElasticsearchUtil.upsert(indexName, indexName, indexId, indexMap);
                         }
                         count++;
                     } else {
@@ -108,6 +114,14 @@ public class IndexConsumer implements Runnable{
         }
     }
 
+    /**
+     * MethodName: shutdown
+     * Description: 外部中断消费程序需要
+     * @param
+     * @return void
+     * Author: zhengchuan
+     * Date: 2019/5/27 10:54
+     */
     public void shutdown() {
         consumer.wakeup();
     }
