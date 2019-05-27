@@ -23,7 +23,7 @@ import java.util.*;
  * @ProjectName: bcht_bigdata
  * @Package: com.bcht.obsever
  * @ClassName: DataObserver
- * @Description:
+ * @Description: hbase协处理器  监听数据变化  将数据发送到kafka  hbase2.0版本以后使用
  * @Author: zhengchuan
  * @CreateDate: 2019/5/21 16:47
  * @UpdateUser:
