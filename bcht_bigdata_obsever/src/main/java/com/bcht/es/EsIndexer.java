@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
  * @ProjectName: bcht_bigdata
  * @Package: com.bcht.es
  * @ClassName: EsIndexer
- * @Description:
+ * @Description: es建索主入口   注意：停止程序的时候请使用kill -15  命令   会触发程序钩子   保证建索信息不丢失
  * @Author: zhengchuan
  * @CreateDate: 2019/5/13 16:30
  * @UpdateUser:
@@ -35,10 +35,24 @@ public class EsIndexer {
             ElasticsearchUtil.createMapping(key,key,value.getFieldTypes());
         });
         logger.info("初始化  各个表的   index  mapping信息创建完成...");
+        logger.info("等待10s  让index的mapping信息更新完成...");
+        try{
+            Thread.sleep(10*1000);
+        }catch (InterruptedException e){
+            e.printStackTrace();
+        }
+        logger.info("等待时间结束   mapping信息更新完成...");
     }
 
 
-
+    /**
+     * MethodName: main
+     * Description:   indexer  建索程序主入口
+     * @param args
+     * @return void
+     * Author: zhengchuan
+     * Date: 2019/5/27 10:36
+     */
     public static void main(String[] args) {
         init();
         int consumerNum = PropertiesUtil.getIntValue("indexer.consumer.num",3);

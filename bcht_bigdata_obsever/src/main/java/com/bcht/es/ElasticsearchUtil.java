@@ -1,5 +1,6 @@
 package com.bcht.es;
 
+import com.alibaba.fastjson.JSON;
 import com.bcht.common.FieldType;
 import com.bcht.common.PropertiesUtil;
 import org.apache.commons.lang.StringUtils;
@@ -10,6 +11,8 @@ import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.bulk.*;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
@@ -36,7 +39,7 @@ import java.util.Map;
  * @ProjectName: bcht_bigdata
  * @Package: com.bcht.es
  * @ClassName: ElasticsearchUtil
- * @Description:
+ * @Description: es工具类  这里主要是建索相关功能
  * @Author: zhengchuan
  * @CreateDate: 2019/5/15 16:01
  * @UpdateUser:
@@ -93,7 +96,7 @@ public class ElasticsearchUtil {
             if (bulkResponse.hasFailures() && null != brs && brs.length > 0) {
                 for (int i = 0; i < brs.length; i++) {
                     if (brs[i].isFailed()) {
-                        logger.error("ES调用发生错误，编号:{}, 错误代码为:{}", brs[i].getId(), brs[i].getFailureMessage());
+                        logger.error("ES调用发生错误，index:{},id:{}, 错误代码为:{}",brs[i].getIndex(),brs[i].getId(), brs[i].getFailureMessage());
                     }
                 }
             }
@@ -211,6 +214,8 @@ public class ElasticsearchUtil {
      * Date: 2019/5/15 17:08
      */
     public static void upsert(String index, String type, String id, String source) {
+        index = index.toLowerCase();
+        type = type.toLowerCase();
         IndexRequest indexRequest = new IndexRequest(index, type, id).source(source, XContentType.JSON);
         UpdateRequest updateRequest = new UpdateRequest(index, type, id).doc(source, XContentType.JSON).upsert(indexRequest);
         bulkProcessor.add(updateRequest);//批量保存
@@ -247,8 +252,8 @@ public class ElasticsearchUtil {
         parameters.put(fieldType.getFieldName(),value);
         Script inline = new Script(
                 ScriptType.INLINE,
-                "painless",
-            "if (ctx._source."+fieldType.getFieldName()+" "+op+" params."+fieldType.getFieldName()+") {"
+                 "painless",
+            "if (ctx._source."+fieldType.getFieldName()+" == null || ctx._source."+fieldType.getFieldName()+" "+op+" params."+fieldType.getFieldName()+") {"
                         + " ctx._source."+fieldType.getFieldName()+" = params."+fieldType.getFieldName()
                         + "}",
                 parameters);
@@ -258,13 +263,33 @@ public class ElasticsearchUtil {
         bulkProcessor.add(request);
     }
 
-
+    /**
+     * MethodName: delete
+     * Description:  删除doc
+     * @param index
+     * @param type
+     * @param id
+     * @return void
+     * Author: zhengchuan
+     * Date: 2019/5/24 9:50
+     */
     public static void delete(String index,String type,String id){
+        index = index.toLowerCase();
+        type = type.toLowerCase();
         DeleteRequest request = new DeleteRequest(index,type,id);
         bulkProcessor.add(request);
     }
 
-
+    /**
+     * MethodName: createMapping
+     * Description: 创建index mapping
+     * @param index
+     * @param type
+     * @param fieldTypes
+     * @return void
+     * Author: zhengchuan
+     * Date: 2019/5/24 9:49
+     */
     public static void createMapping(String index, String type, Map<String, FieldType> fieldTypes){
         try{
             XContentBuilder builder = XContentFactory.jsonBuilder();
@@ -284,6 +309,14 @@ public class ElasticsearchUtil {
                 } else {
                     logger.error("{}索引的创建失败", index);
                 }
+            }else{
+                PutMappingRequest request = new PutMappingRequest(index).type(type).source(builder);
+                PutMappingResponse putMappingResponse = client.indices().putMapping(request);
+                if(putMappingResponse.isAcknowledged()){
+                    logger.info("更新{}的索引及映射成功", index);
+                }else{
+                    logger.error("{}索引的映射更新失败", index);
+                }
             }
         }catch (IOException e){
             e.printStackTrace();
@@ -291,6 +324,14 @@ public class ElasticsearchUtil {
         }
     }
 
+    /**
+     * MethodName: existIndex
+     * Description:   判断索引是否已经存在
+     * @param index
+     * @return boolean
+     * Author: zhengchuan
+     * Date: 2019/5/27 10:52
+     */
     private static boolean existIndex (String index) {
         try {
             return client.indices().exists(new GetIndexRequest().indices(index), new Header[0]);
@@ -300,21 +341,90 @@ public class ElasticsearchUtil {
         }
     }
 
+    /**
+     * MethodName: upsert
+     * Description:   插入或者更新 doc  使用painless 脚本进行doc操作
+     * @param index
+     * @param type
+     * @param id
+     * @param fieldsMap
+     * @return void
+     * Author: zhengchuan
+     * Date: 2019/5/27 10:52
+     */
+    public static void upsert(String index,String type,String id,Map<String,FieldType> fieldsMap){
+        index = index.toLowerCase();
+        type = type.toLowerCase();
+        UpdateRequest request = new UpdateRequest(index, type, id);
+        StringBuilder script = new StringBuilder();
+        Map<String,Object> params = new HashMap<>();
+
+        fieldsMap.forEach((fieldName,fieldType)->{
+            Object value = fieldType.getValue();
+            switch (fieldType.getType()){
+                case "integer":
+                    value = Integer.parseInt((String)value);
+                    break;
+                case "long":
+                    value = Long.parseLong((String)value);
+                    break;
+                case "double":
+                    value = Double.parseDouble((String)value);
+                    break;
+                case "float":
+                    value = Float.parseFloat((String)value);
+                    break;
+            }
+            params.put(fieldName,value);
+
+            String op = "";
+            if(FieldType.RULE_LESS.equals(fieldType.getRule())){
+                op = ">";
+            }else if(FieldType.RULE_GRATER.equals(fieldType.getRule())){
+                op = "<";
+            }
+            String setValue = "ctx._source."+fieldName+" = params."+fieldName+";";
+            if(StringUtils.isEmpty(op)){
+               script.append(setValue);
+            }else{
+               script.append("if(ctx._source."+fieldName+" == null || ctx._source."+fieldName+" "+op+" params."+fieldName+"){"+setValue+"}");
+            }
+        });
+        Script inline = new Script(ScriptType.INLINE, "painless",script.toString(), params);
+        request.script(inline);
+        IndexRequest indexRequest = new IndexRequest(index, type, id).source(params,XContentType.JSON);
+        request.upsert(indexRequest);
+        bulkProcessor.add(request);
+    }
 
 
 
     public static void main(String[] args) {
 //        Map<String,Object> map = new HashMap<>();
-//        map.put("name","zc");
+//        map.put("name","zc2");
 //        map.put("age",18);
 //        map.put("birth","1992-04-19 00:00:00");
 //        String source = JSON.toJSONString(map);
-//        upsert("zc_test","zc_test","zc",source);
+//        upsert("zc_test","zc_test","zc2",source);
+
+//        FieldType fieldType = new FieldType();
+//        fieldType.setFieldName("age");
+//        fieldType.setType("integer");
+//        fieldType.setRule(FieldType.RULE_GRATER);
+//        fieldType.setValue("16");
+//        Map<String,FieldType> map = new HashMap<>();
+//        map.put(fieldType.getFieldName(),fieldType);
+//        upsert("zc_test","zc_test","zc3",map);
+
+
         FieldType fieldType = new FieldType();
         fieldType.setFieldName("age");
         fieldType.setRule(FieldType.RULE_GRATER);
-        updateByQuery("zc_test","zc_test","zc1",fieldType,16);
+        updateByQuery("zc_test","zc_test","zc3",fieldType,17);
+
         System.out.println("创建索引完成");
+
+
 //        delete("zc_test","zc_test","zc");
 //        System.out.println("删除索引完成");
     }
