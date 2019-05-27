@@ -13,7 +13,8 @@ import java.util.Properties;
  * @ProjectName: bcht_bigdata
  * @Package: com.bcht.common
  * @ClassName: PropertiesUtil
- * @Description:
+ * @Description: 配置信息读取   配置文件放在和项目平级的conf文件夹下
+ * 免除后期更新jar包频繁替换配置文件
  * @Author: zhengchuan
  * @CreateDate: 2019/5/20 13:42
  * @UpdateUser:

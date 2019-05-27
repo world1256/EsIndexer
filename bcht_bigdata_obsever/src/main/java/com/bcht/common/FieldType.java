@@ -4,7 +4,7 @@ package com.bcht.common;
  * @ProjectName: bcht_bigdata
  * @Package: com.bcht.common
  * @ClassName: FieldType
- * @Description:
+ * @Description: 单个字段的索引信息
  * @Author: zhengchuan
  * @CreateDate: 2019/5/13 16:35
  * @UpdateUser:
@@ -25,6 +25,8 @@ public class FieldType {
     private String fieldName;
 
     private String rule;
+
+    private Object value;
 
     public String getType() {
         return type;
@@ -48,5 +50,13 @@ public class FieldType {
 
     public void setRule(String rule) {
         this.rule = rule;
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
+    public void setValue(Object value) {
+        this.value = value;
     }
 }

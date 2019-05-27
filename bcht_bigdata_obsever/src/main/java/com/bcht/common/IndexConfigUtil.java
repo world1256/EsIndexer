@@ -32,6 +32,14 @@ public class IndexConfigUtil {
 
     public static Map<String, TableIndex> INDEX_CONFIG_MAP;
 
+    /**
+     * MethodName: generateIndexConfigMap
+     * Description:   生成表 的建索字段  配置map
+     * @param
+     * @return void
+     * Author: zhengchuan
+     * Date: 2019/5/27 10:47
+     */
     public static void generateIndexConfigMap(){
         INDEX_CONFIG_MAP = new HashMap<>();
         SAXReader reader = new SAXReader();
@@ -80,6 +88,18 @@ public class IndexConfigUtil {
         logger.info("初始化indexSchema 配置完成...");
     }
 
+    /**
+     * MethodName: generateTypeMap
+     * Description:   读取不同规则的字段信息
+     * @param fields
+     * @param rule
+     * @param typeName
+     * @param fieldTypes
+     * @param tableName
+     * @return void
+     * Author: zhengchuan
+     * Date: 2019/5/27 10:48
+     */
     private static void generateTypeMap(Element fields,String rule,String typeName,Map<String,FieldType> fieldTypes,String tableName){
         Element rulerFields = fields.element(rule);
         if(rulerFields != null){

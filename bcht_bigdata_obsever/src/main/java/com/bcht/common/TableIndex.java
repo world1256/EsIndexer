@@ -1,13 +1,12 @@
 package com.bcht.common;
 
-import java.util.List;
 import java.util.Map;
 
 /**
  * @ProjectName: bcht_bigdata
  * @Package: com.bcht.common
  * @ClassName: TableIndex
- * @Description:
+ * @Description: 表的 索引字段信息
  * @Author: zhengchuan
  * @CreateDate: 2019/5/13 16:33
  * @UpdateUser:
